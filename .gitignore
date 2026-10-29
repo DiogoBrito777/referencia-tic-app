@@ -1,0 +1,7 @@
+# ambiente local e resultados das buscas (não vão para o repositório)
+.venv/
+saida/
+__pycache__/
+*.pyc
+.dev/
+*.tmp

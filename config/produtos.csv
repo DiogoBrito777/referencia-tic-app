@@ -1,0 +1,13 @@
+produto;atributo;unidade;regra_da_faixa
+notebook;RAM|memória|DDR;GB;x a 2*x
+notebook;armazenamento|SSD|HD|disco;GB|TB*1024;x a 2*x
+notebook;tela|display|polegadas;polegadas|pol|"|'';x-2 a x+2
+notebook;garantia;meses|anos*12;x-12 a x+24
+switch;portas|porta;portas;x a 2*x
+switch;garantia;meses|anos*12;x-12 a x+24
+câmera IP;resolução|megapixels|MP;MP|megapixels;x a 2*x
+câmera IP;alcance|infravermelho|IR;m|metros;x a 2*x
+câmera IP;garantia;meses|anos*12;x-12 a x+24
+nobreak;potência|kVA|VA;VA|kVA*1000;x a 1.5*x
+nobreak;autonomia;minutos|min;x a 2*x
+nobreak;garantia;meses|anos*12;x-12 a x+24

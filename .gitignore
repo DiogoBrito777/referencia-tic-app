@@ -1,0 +1,17 @@
+# ambiente local e resultados das buscas (não vão para o repositório)
+.venv/
+saida/
+__pycache__/
+*.pyc
+.dev/
+*.tmp
+backups/
+*.zip
+_backup_repo*
+HASHES*
+# identificadores e segredos locais (não vão para o repositório)
+pedido*/
+.env
+secrets.toml
+*.key
+caso_mouse_local*

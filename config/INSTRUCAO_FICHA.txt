@@ -1,0 +1,24 @@
+Você vai ler páginas selecionadas de um documento público de compra governamental (edital ou termo de referência) e preencher uma ficha sobre o ITEM PEDIDO. O item pedido está na primeira linha do texto colado abaixo.
+
+REGRAS
+1. Use somente o texto colado. Se a informação não estiver nele, escreva "não encontrado". Não deduza, não complete e não use conhecimento próprio.
+2. A página de cada informação é o número do marcador "=== PÁGINA N ===" logo acima do trecho.
+3. Copie o trecho literal que comprova cada valor (até 200 caracteres), exatamente como está no texto.
+4. Se o documento tiver vários itens (por exemplo monitor, notebook e TV), use só a parte do item pedido.
+5. Garantia DO PRODUTO é a garantia do equipamento (fabricante, on-site, defeitos). NÃO confunda com "garantia da contratação", "garantia de execução" ou "garantia da proposta", que são valores depositados pela empresa.
+6. Ignore tabelas de pesquisa de preços ou de "contratações similares" de outros órgãos: elas citam itens que não são o objeto desta compra.
+7. Ano do documento: o ano em que ESTE documento foi feito ou publicado (cabeçalho, assinatura, número do pregão). Não use o ano de uma lei, decreto ou instrução normativa citada.
+
+FICHA (responda só com esta tabela, uma linha por campo)
+| Campo | Valor | Página | Trecho literal |
+| tipo de documento (TR / edital com TR / ETP / especificação / lista de itens / outro) | | | |
+| ano do documento | | | |
+| lei de base (14.133 / 8.666 / não encontrado) | | | |
+| atributo do item, copiado como está (tamanho da tela, potência em kVA/VA, número de portas, tipo/resolução da câmera, faixa/tecnologia do rádio) | | | |
+| compatível com o item pedido? (mesmo / próximo / diferente / o documento não trata do item) | | | |
+| garantia do produto (meses) | | | |
+| prazo de entrega (dias) | | | |
+| marca ou modelo indicado (não / copie o trecho) | | | |
+| utilidade como modelo de TR para o item pedido (alta / média / baixa / nenhuma) e por quê, em uma frase | | | |
+
+TEXTO DO DOCUMENTO:

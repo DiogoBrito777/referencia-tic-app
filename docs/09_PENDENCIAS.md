@@ -1,6 +1,30 @@
-# 09 – Pendências (atualizado em 31/10/2026)
+# 09 – Pendências (atualizado em 21/11/2026; as seções numeradas abaixo são de 31/10 e 01/11)
 
-## 1. Dicionário e código do produto (necessidade relatada por um representante da PMDF na apresentação de 29/10; validação do dicionário a confirmar)
+## Concluído em 21/11
+- Varredura do repositório feita; histórico recriado com 1 commit limpo e publicado de novo (falta conferir outros repositórios públicos da conta); Pedido 18 (4 ajustes em Produto) e Pedidos 20 e 21 (testes, runner, nome do aviso) conferidos e testados ao vivo; app só em localhost; documentação da IA local com aviso de limites.
+
+## Fazer agora
+1. [ ] Apagar v4h\pedido14d\git_antigo e o zip de backup do repositório (têm e-mail pessoal).
+2. [ ] Perguntas para a TI do órgão (não definir nós): arquitetura, rede e firewall; proxy reverso e HTTPS; contas e cadastro; Ollama como serviço; limite de chamadas ao PNCP com vários usuários; placa, VRAM e RAM; código de enquadramento de Microsoft 365 e XDR; se n=5 basta como referência.
+3. [ ] Medir o estado de segurança do PC local (só leitura): quem escuta cada porta, variáveis do chat, firewall, conexões de saída, permissões de C:\_Ollama.
+4. [ ] Regenerar o PDF da documentação da IA local a partir dos .md (o projeto não tem gerador) e registrar os novos hashes nos documentos internos.
+5. [ ] Testar ao vivo a busca de compras do Serviço depois do Pedido 18.
+
+## Decisões abertas
+- ABRIR_V4H.bat abrir 127.0.0.1 em vez de localhost no navegador (estético).
+- Causa de o código 350949 ser o único item com compras no 11248 e dos 26 valores R$0,00 no PNCP: NÃO VERIFICADA.
+- Runner do Pedido 16 continua com o hash antigo de orcamento_tokens.csv (reprovaria).
+- Repositório git privado para a v4h (sem texto de edital); mover as pastas pedido* para fora do código.
+
+## Não verificado
+- netstat da porta 8511; efeito real de OFFLINE_MODE; comportamento com 2 ou mais usuários.
+- "Trocar WEBUI_SECRET_KEY desconecta usuários": retirado da documentação por falta de confirmação.
+
+## Depois
+- Juntar TRs de outros itens (antivírus/EDR/XDR, suíte de escritório, SaaS, banco de dados); Pedidos 14 e 15.
+- Sonda J3/J4 em 22/11 (12h45 e 19h35); corrigir slides antigos para 26/11.
+
+## 1. Dicionário e código do produto (necessidade relatada por um representante do órgão na apresentação de 29/10; validação do dicionário a confirmar)
 - [x] Sinônimos e busca pelo radical (televisão → televisor; tv; nobreak) – v4 fase 1
 - [ ] Equipe aprovar `config\sinonimos_SUGESTOES.csv` (coluna "aprovado"); até lá o app não usa essas sugestões
 - [x] Não marcar código sozinho; ativos primeiro; desativados em cinza – v4 fase 2
@@ -40,19 +64,19 @@
 
 ## 5. Projeto
 - [ ] Ficha técnica do fabricante (abordagem B)
-- [ ] Teste cego com servidor da PMDF
+- [ ] Teste cego com servidor do órgão
 - [ ] Confirmar cronograma: 12/11 · 26/11 · 10/12
 - [ ] Relatório final (ABNT / roteiro do professor)
-- [ ] Decidir nomes da equipe e do orientador no repositório público
+- [ ] (superado em 21/11: histórico recriado com 1 commit limpo) Decidir nomes da equipe e do orientador no repositório público
 - [ ] Link do app em README.md:5 × "uso restrito" em 07_SEGURANCA.md:9
 - [ ] Atualizar 02_REQUISITOS (RF02, RF03, RF04, RF09, RF17, RF18, RF19) e 05_RESULTADOS (caso do mouse)
 - [ ] Teste da tela: reproduzir o travamento na v4e (porta 8505) e repetir na v4f (8506); Buscar com rádio PDM e código de item deve avisar e não buscar. Causa do travamento NÃO confirmada.
-- [ ] Commit suspenso: main em 2bd7b01, nada commitado. Decidir: nomes em README.md e docs/01; config/sinonimos_SUGESTOES.csv (sem aprovação registrada); ABRIR_APP.bat (app.py:5 o cita; não está no repositório); link do app × "uso restrito" (07_SEGURANCA); "aceitar maiores" marcado por padrão; versão oficial. Commit só em branch nova, sem push no main.
+- [ ] (superado em 21/11: histórico recriado com 1 commit limpo) Commit suspenso: main em 2bd7b01, nada commitado. Decidir: nomes em README.md e docs/01; config/sinonimos_SUGESTOES.csv (sem aprovação registrada); ABRIR_APP.bat (app.py:5 o cita; não está no repositório); link do app × "uso restrito" (07_SEGURANCA); "aceitar maiores" marcado por padrão; versão oficial. Commit só em branch nova, sem push no main.
 - [ ] Limpeza: apagar o conteúdo de saida\sessoes da v4d e da v4f; mover HASHES_REFERENCIA.txt e o zip de backup de C:\_MVC para sondagem_v5ackups.
 - [ ] Docs: faltam entradas da v4f e dos bugs (IndexError app.py:375, trava sem limite de espera, Buscar com tipo errado); docs/02 e 05 desatualizados.
 - [ ] A confirmar: causa dos 3 timeouts do PNCP em 31/10 19:09; "1 min 58 s" da tela; tempo da rodada × pausa de 3 s; Linux real; modo completo (1.448); critério de "preço suspeito" (114 de 300 no código 14302); regra de atributos do nobreak.
 - [ ] v4g (diagnóstico ainda não rodado): seleção de páginas por nome do item e sinônimos, orçamento de tokens, cabeçalho com o nome do catálogo, zip dentro de zip, aviso de mais de um item compatível, validação da ficha em código.
-- [ ] Perguntar à PMDF: a IA precisa rodar local ou há alternativa aprovada? O que é "bom o suficiente" numa ficha rascunho?
+- [ ] Perguntar ao órgão: a IA precisa rodar local ou há alternativa aprovada? O que é "bom o suficiente" numa ficha rascunho?
 - [ ] v4g, fase 0 (diagnóstico, só leitura) feita em 01/11: relatório em sondagem_v5\diagnostico_v4g\RELATORIO.md. Medições numa amostra de OUTRO edital (69 páginas); o PDF do edital 90019/2026 não está no disco, então blocos por lote/item no 90019: NÃO VERIFICADO.
 - [ ] v4g, achados com número: a seleção de páginas usa regex sem limite de palavra (18 de 69 páginas da amostra acertam só no meio de outra palavra); o orçamento atual é por páginas (MAX_PAG=16 ≈ 10,3 mil tokens a 3,1 car./token) e a estimativa do código usa 4 car./token; não existe validação da ficha nem tratamento de zip dentro de zip.
 - [ ] v4g, decisões pendentes: tolerância do "conferir" (0,90 vem de 4 casos); orçamento de 8.000 tokens só da entrada ou com a saída (num_ctx 8192 × 16384); OCR dentro ou fora; fornecer o PDF do 90019 e o gabarito manual; regra "item no trecho" para garantia e prazo; IA no app ou só em script.

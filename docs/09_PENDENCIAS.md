@@ -1,10 +1,10 @@
 # 09 – Pendências (atualizado em 21/11/2026; as seções numeradas abaixo são de 31/10 e 01/11)
 
 ## Concluído em 21/11
-- Varredura do repositório feita; histórico recriado com 1 commit limpo e publicado de novo (falta conferir outros repositórios públicos da conta); Pedido 18 (4 ajustes em Produto) e Pedidos 20 e 21 (testes, runner, nome do aviso) conferidos e testados ao vivo; app só em localhost; documentação da IA local com aviso de limites.
+- Varredura do repositório feita; histórico recriado com 1 commit limpo e publicado de novo (falta conferir outros repositórios públicos da conta); Pedido 18 (4 ajustes em Produto) e Pedidos 20 e 21 (testes, runner, nome do aviso) conferidos e testados ao vivo; app só em localhost; documentação da IA local com aviso de limites; backups antigos com e-mail pessoal apagados.
 
 ## Fazer agora
-1. [ ] Apagar v4h\pedido14d\git_antigo e o zip de backup do repositório (têm e-mail pessoal).
+1. [x] Apagar v4h\pedido14d\git_antigo e o zip de backup do repositório (têm e-mail pessoal) (feito em 21/11; conferido por listagem da pasta).
 2. [ ] Perguntas para a TI do órgão (não definir nós): arquitetura, rede e firewall; proxy reverso e HTTPS; contas e cadastro; Ollama como serviço; limite de chamadas ao PNCP com vários usuários; placa, VRAM e RAM; código de enquadramento de Microsoft 365 e XDR; se n=5 basta como referência.
 3. [ ] Medir o estado de segurança do PC local (só leitura): quem escuta cada porta, variáveis do chat, firewall, conexões de saída, permissões de C:\_Ollama.
 4. [ ] Regenerar o PDF da documentação da IA local a partir dos .md (o projeto não tem gerador) e registrar os novos hashes nos documentos internos.

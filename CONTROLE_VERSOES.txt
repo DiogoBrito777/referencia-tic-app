@@ -1,0 +1,88 @@
+﻿CONTROLE DE VERSÕES - Referência TIC (ferramenta de extração de dados públicos do PNCP)
+Atualizado em 2026-10-23
+
+1) C:\_MVC\ferramenta_mvp
+   Autoria: Claude Code.
+   Estado: versão original (MVP).
+
+2) C:\_MVC\gemini_ferramenta
+   Autoria: Gemini (refatoração).
+   Estado: apresentou falhas na regra de faixas parciais e distorção na flag "sem PNCP".
+
+3) C:\_MVC\sonnet_ferramenta
+   Autoria: Claude Sonnet (refatoração, partindo de gemini_ferramenta\ferramenta_ANTES_2026-10-23.py).
+   Estado: corrigiu as estatísticas do limite de rede ("não verificado" x "sem PNCP", coluna situacao_pncp)
+   e a lógica bidirecional da faixa "parcial" (piso e teto). Implementou a sinalização de preços
+   suspeitos (coluna observacao_preco = "preço suspeito", fora de 0,25x a 4x a mediana) sem perda de dados:
+   nenhuma linha é excluída. Valida o item no PNCP (descrição do produto, não acessório) antes de
+   registrar o valor homologado.
+
+(v4h) C:\_Pro\_MVC\sondagem_v5\v4h  (20/11/2026)
+   Cópia da noite_2026-11-18\app_streamlit_v4g_teste com: (1) guarda de contexto no recorte (ranking_recorte.py + limitar_recorte em ferramenta.py; fração 0,70 em
+   config\orcamento_v2.csv; linha 'Recorte: X de Y ...' e aviso 'Recorte reduzido'); (2) tela 'Conferir ficha (sem IA)' (conferir_tela.py, conferir_ficha_v2.py, formato_v3.py).
+   orcamento_tokens.py = cópia de produto_p1\fase5\orcamento_tokens_v2.py. recorte_teste_ia.py (seletor) NÃO foi alterado. Backups: v4h\backups\*__antes_pedido8.
+
+
+(v4h, Pedido 9) 20/11/2026
+   + Seletor Produto/Servico no topo da tela; busca de servico (servicos.py, config\catalogo_servicos.csv = copia do catalogo baixado em 17/11/2026, 3.108 itens)
+     NAO TESTADO COM REDE (so respostas simuladas); preco de servico sem media/mediana, unidade e quantidade, marca "suspeito"; campo opcional do canal oficial.
+   + CSV da busca com colunas AO FINAL: versao_app, tipo_busca, modo, chamadas, falhas, tempo_s.
+   + Etapas numeradas (1 Buscar, 2 Escolher a compra, 3 Recorte, 4 IA, 5 Conferir), caixa de limites, .streamlit\config.toml (tema; gatherUsageStats = false), ABRIR_V4H.bat (porta livre > 8510).
+   Backups: v4h\backups\*__antes_pedido9. No Pedido 8 houve 1 GET real por engano (caso_mouse.py): contador efetivo >= 70.
+
+(v4h, Pedido 13) 20/11/2026
+   + .streamlit/config.toml sem [theme] (volta System/Light/Dark) e com [server] headless = true (o navegador abre so uma vez, pelo .bat); sem porta no arquivo.
+   + Campos mais estreitos (busca de produto e de servico, UF, atributos), caixa do texto para IA com 150 px e da resposta da IA com 120 px.
+   + Servico: Etapa 1 igual a do produto (colunas [3, 1], botao Procurar no catalogo de servicos, Enter tambem procura; termo novo arquiva a busca e limpa os codigos).
+   Backups: v4h/backups/*__antes_pedido13. ABRIR_V4H.bat e ABRIR_APP.bat nao foram editados.
+
+(v4h, Pedido 13B) 20/11/2026
+   + Etapa 1 montada por UMA funcao (etapa1) para Produto e Servico: mesma ordem de blocos, mesmos rotulos de botao ('Procurar no catalogo'), coluna unica de 2/3 da tela,
+     'Atualizar catalogo' dentro da coluna (so produto), 'Opcao avancada' tambem no servico (codigos digitados, conferidos no catalogo local), bloco 'Modo e UF' igual.
+   + Textos do servico: caixa azul sem atributos; legenda do que foi e nao foi testado com rede (Pedido 10). Teste estrutural do AppTest: pedido13b/estrutura_produto_vs_servico.md.
+   Nao verificado: o desenho real no navegador. Backups: v4h/backups/*__antes_pedido13b.
+
+(v4h, Pedido 13C) 20/11/2026
+   + Regra de largura: Etapa 1 e suas mensagens, caixa Limites, seletor e Nova busca na coluna de 2/3; Etapas 2 a 5 em largura total (comentario no app.py).
+   + Etapa 2 com titulo antes da busca; Etapas 3 e 4 com uma linha. Selecao de codigo do servico pela tabela com coluna usar (sem multiselect), ate 6 marcados; lista de resultados montada por uma funcao para os dois modos.
+   + Altura das tabelas por uma funcao (ate 40 linhas pelo conteudo; acima, 600 px com rolagem). Nao verificado: o desenho real no navegador. Backups: v4h/backups/*__antes_pedido13c.
+
+(v4h, Pedido 13D) 20/11/2026
+   + Etapa 1: so as ENTRADAS ficam nas colunas de 2/3 (duas colunas: titulo..legenda e opcao avancada..Buscar); a regiao de resultado da procura (lista_resultados) fica em LARGURA TOTAL entre elas.
+   + Regra de largura atualizada no comentario do app.py. Testes estruturais: test_pedido13d_estrutura.py e pedido13d/estrutura_produto_vs_servico.md. Nao verificado: o desenho real no navegador.
+   Backups: v4h/backups/*__antes_pedido13d.
+
+(v4h, Pedido 13E) 20/11/2026
+   + Cabecalho, topo e entradas da Etapa 1 na coluna central st.columns([1, 3, 1]); resultado da procura e Etapas 2 a 5 em largura total (comentario da regra de largura no app.py).
+   + config\termos_software.csv (editavel) e orientacao quando a procura de produto ou servico nao acha nada e o termo e de software/licenca (catalogo local, sem rede). Nao verificado: o desenho real no navegador.
+   Backups: v4h/backups/*__antes_pedido13e.
+
+(v4h, Pedido 13F) 20/11/2026
+   + Botao "Atualizar catalogo" tambem no modo Servico, dentro da etapa1 (mesmo lugar, rotulo, largura e alinhamento do Produto); a legenda do servico passou ao formato da do produto.
+   + servicos.baixar_catalogo_servicos (padrao do baixar_catalogo_pdm): copia o atual para config\historico antes de substituir; aborta sem substituir se HTTP != 200, sem 'resultado', itens != totalRegistros ou < 80% do atual.
+   + Testes 13B a 13E: 'Atualizar catalogo' deixou de ser diferenca permitida (regra nova: nenhuma diferenca de botoes entre os modos). Nao verificado: o aspecto visual do botao.
+   Backups: v4h/backups/*__antes_pedido13f.
+
+(v4h, Pedido 13G) 20/11/2026
+   + Saiu da tela do Servico o paragrafo de desenvolvedor. Conteudo guardado AQUI (nao aparece mais para o usuario):
+       "Testado com rede: preco de servico (inclusive tamanhoPagina=100), ligacao ao PNCP e lista de documentos da compra.
+        NAO testado com rede: a busca de servico completa e a tela com dados reais."
+     (Em 20/11/2026, no Pedido 13F, a descarga do catalogo de servicos foi testada com rede: 7 chamadas, HTTP 200.)
+   + Testes estruturais 13B a 13F passam a gravar o estrutura_produto_vs_servico__<teste>.md SOMENTE em pedido13g (pasta do pedido corrente); as evidencias de pedido13b a pedido13f ficam intactas.
+   + test_pedido13g_estrutura.py: nenhum texto de status de teste visivel; Produto e Servico com as mesmas diferencas permitidas de antes (sem a legenda de teste com rede).
+   + ABRIR_APP.bat reescrito no modelo do ABRIR_V4H.bat (porta livre a partir de 8511, --server.port, navegador aberto uma vez). Nao verificado: a execucao do .bat nem o aspecto da tela.
+   Backups: v4h/backups/*__antes_pedido13g.
+
+(v4h, Pedido 13H) 20/11/2026
+   + Saiu da tela do Servico a legenda de desenvolvedor da lista de documentos. Texto guardado AQUI (nao aparece mais para o usuario):
+       "Lista de documentos por compra: NAO TESTADO COM REDE (testada so com resposta simulada)."
+   + Mensagem de progresso da busca: "sem consulta a API" passou a "sem consulta ao portal" (nada mais mudou na frase).
+   + Testes estruturais gravam o .md so em pedido13h; test_pedido13h_estrutura.py exige que nenhuma legenda com "NAO TESTADO" apareca. Nao verificado: o aspecto da tela.
+   Backups: v4h/backups/*__antes_pedido13h.
+
+(v4h, Pedido 13I) 21/11/2026
+   + Painel de progresso unico (classe Painel, sem st.status nem st.spinner; container aberto) em Produto e Servico: procurar, atualizar catalogo, ver configuracoes, conferir codigo, buscar (com o passo 0),
+     baixar documentos, gerar texto para IA e conferir ficha. Fica na tela com o estado final e em st.session_state ate nova acao da etapa, termo novo, Nova busca ou reabrir busca.
+   + Campo "Item pedido" antes de "Gerar texto para IA": servico = descricao propria da linha sem as palavras do nome do servico (servicos.item_pedido_inicial / item_para_recorte); produto = o que ja era.
+   + Testes 9 (data do catalogo lida do arquivo; item do servico), fase4 (resumo do download no painel) e estruturais 13B a 13H ajustados; novos: 13I painel, 13I item pedido, 13I estrutura.
+   Nao verificado: o aspecto do painel e do campo na tela (so AppTest). Backups: v4h/backups/*__antes_pedido13i.

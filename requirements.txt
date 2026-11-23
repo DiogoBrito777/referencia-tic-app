@@ -1,4 +1,4 @@
-# Bibliotecas do app. Todas rodam em Windows e Linux (Streamlit Community Cloud); nenhuma é exclusiva do Windows.
+# Bibliotecas do app (testado com Python 3.14 e as versões abaixo)
 streamlit>=1.50
 pandas>=2.0
 requests>=2.31

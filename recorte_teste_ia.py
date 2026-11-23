@@ -9,7 +9,7 @@ DOCS = [
     ("D02", "web_06.json", "nobreak de 3 kVA", r"no[\s-]?break|\bups\b|\bkva\b|\d\s*va\b"),
     ("D03", "web_17.json", "monitor de 24 polegadas", r"\bmonitor|polegada|\d\s*(\"|”|pol\b)"),
     ("D04", "web_20.json", "monitor de 24 polegadas", r"\bmonitor|polegada|\d\s*(\"|”|pol\b)"),
-    ("D05", "<ARQUIVO_JSON_DO_TR>", "monitor de 24 polegadas", r"\bmonitor|polegada|\d\s*(\"|”|pol\b)"),
+    ("D05", "P_11111111111111_2026_189_1.json", "monitor de 24 polegadas", r"\bmonitor|polegada|\d\s*(\"|”|pol\b)"),
     ("D06", "web_12.json", "switch de 24 portas", r"\bswitch|comutador|\bportas\b|\bpoe\b"),
     ("D07", "web_13.json", "switch de 24 portas", r"\bswitch|comutador|\bportas\b|\bpoe\b"),
     ("D08", "web_09.json", "câmera IP", r"\bcamera|bullet|\bdome\b|megapixel|\bmp\b|\bnvr\b"),

@@ -1,0 +1,2 @@
+modelo;fracao_janela;observacao
+padrao;0,70;Aviso "acima do limite" quando a estimativa do prompt passar desta fração da janela do modelo. O fator de caracteres por token continua o de config\orcamento_tokens.csv (2,9).

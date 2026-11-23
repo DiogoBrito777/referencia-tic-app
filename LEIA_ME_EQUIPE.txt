@@ -1,0 +1,72 @@
+REFERÊNCIA TIC – APP DE TESTE v4h (instituição / órgão)
+Busca compras públicas de TIC (PNCP e Compras.gov.br), marca se cada item atende aos atributos pedidos,
+baixa os documentos da compra, monta um texto pronto para colar numa IA e CONFERE por código a ficha que a IA devolveu.
+Só usa dados públicos, sem login e sem chave. Nenhuma IA participa da busca nem dos filtros.
+Limites: a IA apoia, quem decide é a seção. O resultado não substitui a pesquisa de preços formal da Lei 14.133/2021.
+
+O QUE MUDOU NA v4h (em relação à v4g_teste)
+- No topo: escolha "Produto" ou "Serviço". O caminho de produto não mudou.
+- Serviço (NOVO): procura pela palavra no catálogo de serviços CATSER local (config\catalogo_servicos.csv, 3.108 serviços na última atualização, de 17/11/2026; o botão "Atualizar catálogo" baixa de novo),
+  você marca os códigos, clica em Buscar, e o resto é igual ao produto. ATENÇÃO: a busca de compras de serviço, a ligação ao PNCP e a lista de TR por
+  compra estão NÃO TESTADO COM REDE (só foram testadas com respostas simuladas). O app não calcula média nem mediana de preço de serviço, mostra unidade e
+  quantidade, marca "suspeito" (nunca apaga a linha) e avisa que preços de serviço podem não ser comparáveis (unidade, prazo, quantidade).
+  Campo opcional "preço do site oficial do fornecedor": você digita preço, link e data/hora em que viu; o app nunca acessa nem raspa o site.
+- Etapas numeradas na tela: 1 Buscar · 2 Escolher a compra · 3 Recorte · 4 IA · 5 Conferir.
+- Recorte com guarda de contexto: o texto para a IA nunca passa de 70% da janela (32.768 tokens). A tela mostra sempre
+  "Recorte: X de Y páginas relevantes · estimativa Z tokens (limite 70% = 11.468,8)" e, se alguma página ficou de fora, o aviso "Recorte reduzido" com as páginas.
+- Etapa 5, "Conferir ficha (sem IA)": cole a resposta da IA e confira, campo a campo, se o trecho existe na página citada.
+- O CSV da busca ganhou, AO FINAL, as colunas: versao_app, tipo_busca, modo, chamadas, falhas, tempo_s (as colunas antigas não mudaram).
+
+PROGRESSO NA TELA E "ITEM PEDIDO" (novo)
+- Toda ação demorada mostra um painel de progresso aberto (sem clicar): nome da etapa, barra, "Agora: ..." e tempo. Ao terminar, o painel FICA na tela com "Concluída em N s: ..." ou "Falhou: ..."
+  até a próxima ação da mesma etapa ou até a limpeza (termo novo, Nova busca). Vale para Produto e Serviço: procurar, atualizar catálogo, ver configurações, conferir código, buscar, baixar documentos,
+  gerar texto para IA e conferir ficha. Ainda não foi conferido na tela.
+- Etapa 3: antes de "Gerar texto para IA" há o campo "Item pedido (o que a IA deve procurar no documento)". No serviço vem preenchido com a descrição da linha escolhida (sem as palavras do nome do
+  serviço do catálogo), e você pode editar; separe opções com | para procurar uma frase. No produto vem o que já era. O item vai na primeira linha do texto para a IA e decide a ordem das páginas do recorte.
+
+COMO ABRIR
+- Dê dois cliques em ABRIR_V4H.bat. Ele procura uma porta livre acima de 8510 (começa em 8511) e abre o navegador nela. Feche a janela preta para fechar o app.
+- Pré-requisito: Python do projeto (pasta .venv aqui ou em ..\.venv) e internet para as buscas. (ABRIR_APP.bat passou a seguir o mesmo modelo do ABRIR_V4H.bat: porta livre acima de 8510, passada ao streamlit. Ainda não foi conferido na tela.)
+
+COMO TESTAR A CONFERÊNCIA (sem IA e sem internet)
+1. Gere um texto para a IA (Etapa 3) ou use um recorte já guardado: a Etapa 5 lista os recortes da sessão.
+2. Rode a IA que você usa e copie a resposta (a tabela de 9 campos).
+3. Na Etapa 5, escolha o recorte, cole a resposta, e (opcional) informe "tokens lidos (prompt_eval_count)" e a janela (num_ctx, padrão 32768). Clique em "Conferir ficha".
+4. Leia o resumo ("X de Y citações literais") e a tabela. "Literal" só prova que o texto existe na página, não que a ficha está certa;
+   atributo, marca, utilidade e compatível são revisão humana. "POSSÍVEL CORTE" = o servidor da IA cortou o início do prompt: refaça com recorte menor.
+5. "Baixar a conferência (CSV)" salva o resultado.
+
+3 PASSOS (instalação)
+1. Descompacte numa pasta sua (ex.: Documentos\app_streamlit). Não rode de dentro do zip.
+2. Dê dois cliques em INSTALAR.bat (só na primeira vez; leva alguns minutos e cria a pasta .venv).
+3. Dê dois cliques em ABRIR_V4H.bat.
+
+O QUE TESTAR
+1. Produto: busca por código do catálogo: "notebook", código 8435, marque "PDM", RAM 16, armazenamento 512, tela 15, modo "rápido", clique em Buscar.
+   Leva cerca de 2 a 3 minutos (pausa de 3 s entre chamadas). Confira: barras de progresso, resumo e a tabela.
+2. Na tabela: clique em "abrir" numa linha com link e confira se a compra no PNCP é a mesma (órgão, item, preço).
+3. Etapa 3: escolha uma linha com link do PNCP, clique em "Baixar documentos da linha", escolha o PDF (de preferência o TR) e clique em "Gerar texto para IA".
+4. Serviço (NÃO TESTADO COM REDE): escolha "Serviço", procure "manutenção elétrica", marque o código 5606 e clique em Buscar. Anote tudo o que travar.
+   Na tabela, use "Listar os TR e documentos principais desta compra" numa linha com link.
+5. Busca pelo nome de produto: deixe o código vazio e busque "notebook" (UF DF). Ela é mais lenta e não foi testada na tela.
+
+COMO LER O RESULTADO
+- "não atende": algum atributo está fora da faixa aceita.
+- "a confirmar no TR" (parcial): o catálogo dá uma faixa (ex.: "superior a 8 GB") que pode ou não atender. Confira no TR.
+- "não informado": a descrição não traz o atributo.
+- Produto, "preço suspeito": muito abaixo ou acima da mediana da busca. Serviço, "suspeito": salto de 10 vezes ou mais entre preços da mesma unidade (sem média nem mediana).
+  Nos dois casos a linha não é excluída; confira.
+- O resultado apoia a decisão e não substitui a pesquisa de preços formal da Lei 14.133/2021.
+
+ANOTE E MANDE PARA A COORDENAÇÃO DO TESTE
+- O que travou ou deu erro (copie a mensagem e o que aparece em "Mensagens da busca").
+- Linhas em que a marcação (atende / não atende / a confirmar) estava errada, comparando com o PNCP.
+- Quanto tempo a busca levou.
+
+ONDE FICAM OS ARQUIVOS
+- saida\sessoes\<id>\busca_*.csv (tabelas), documentos\ (downloads), recortes\ e para_ia\ (textos para a IA); cada sessão grava na própria pasta.
+- config\produtos.csv: produtos e regras de atributos (dá para incluir produto novo; separador ";", salve em UTF-8).
+- config\catalogo_servicos.csv: catálogo de serviços (com a data do download na coluna baixado_em). O botão "Atualizar catálogo" (nos modos Produto e Serviço, no mesmo lugar) baixa de novo:
+  no serviço são 7 páginas, cerca de 30 segundos. Antes de substituir, o app guarda uma cópia em config\historico\catalogo_servicos__AAAA-MM-DD_HHMM.csv; se o portal falhar, a lista vier incompleta
+  (itens diferentes do total informado) ou com menos de 80% das linhas do atual, o catálogo atual é mantido e a tela explica o motivo.
+- ABRIR_FERRAMENTA.bat abre a versão em texto (menu no terminal), com as mesmas funções do produto.

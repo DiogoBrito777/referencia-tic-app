@@ -1,0 +1,2 @@
+﻿modelo;caracteres_por_token;contexto_tokens;reserva_resposta_tokens;observacao
+padrao;2,9;32768;1500;Padrão conservador: superestimar é o lado seguro; subestimar faz o servidor da IA cortar o prompt sem avisar. 2,9 = pouco abaixo da menor razão medida (2,91 caracteres por token, qwen, texto curto). Edite os números conforme a IA e a janela de contexto que for usar.

@@ -15,3 +15,6 @@ pedido*/
 secrets.toml
 *.key
 caso_mouse_local*
+# dados e temporarios dos testes (nao vao para o repositorio)
+tmp_teste*/
+referencia_tic_dados_teste/

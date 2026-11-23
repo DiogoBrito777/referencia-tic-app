@@ -1,4 +1,4 @@
-"""Ferramenta MVP – Referência TIC (UnDF / PMDF).
+"""Ferramenta MVP – Referência TIC (projeto acadêmico).
 
 Menu em texto para a equipe testar o fluxo: buscar compras no PNCP, ver a tabela, baixar documentos,
 recortar as páginas do item e montar o texto para colar numa IA.
@@ -26,6 +26,10 @@ from pathlib import Path
 
 # ----------------------------------------------------------------- caminhos e limites
 PASTA = Path(__file__).resolve().parent
+if str(PASTA) not in sys.path:
+    sys.path.insert(0, str(PASTA))
+import orcamento_tokens  # noqa: E402  (orçamento de tokens: funções puras em orcamento_tokens.py)
+import ranking_recorte  # noqa: E402  (v4h: guarda de contexto no recorte: ordem de inclusão do seletor + limite de 70% da janela)
 CONFIG = PASTA / "config"
 SAIDA = PASTA / "saida"
 PRODUTOS_CSV = CONFIG / "produtos.csv"
@@ -43,7 +47,7 @@ FONTE_PADRAO = "1"       # 1 = API de Consultas; 2 = busca do portal (ver LEIA_M
 MODALIDADES = (6, 8)     # 6 = Pregão Eletrônico, 8 = Dispensa (tabela /v1/modalidades)
 MAX_PAGINAS_CONSULTA = 2 # páginas de 50 compras por mês e modalidade na API de Consultas
 TERMOS_TI = r"informatica|tecnologia da informacao|\btic\b|computador|equipamentos de ti\b|microcomputador"
-USER_AGENT = "ReferenciaTIC-Ferramenta/0.1 (pesquisa academica UnDF)"
+USER_AGENT = "ReferenciaTIC-Ferramenta/0.1 (pesquisa academica)"
 PAUSA_S = 3              # pausa antes de cada chamada
 TENTATIVAS = 3           # tentativas por chamada
 MAX_PAGINAS_BUSCA = 3    # até 3 páginas de 100 editais na busca
@@ -51,6 +55,10 @@ MAX_COMPRAS = 40         # até 40 compras (com resultado) analisadas por busca
 MAX_RESULTADOS = 60      # até 60 consultas de resultado de item por busca
 MESES = 12               # janela da busca
 OLLAMA_NUM_CTX = 8192    # quando a leitura com Ollama for implementada: num_ctx >= 8192, senão o recorte é cortado
+VERSAO_APP = "v4h"       # v4h (Pedido 9): vai nas colunas finais do CSV da busca
+MODO_ATUAL = ""          # 'rápido' ou 'completo': a tela (app.limites) preenche; vazio = rodou pelo menu, sem modo escolhido
+TIPO_BUSCA = "produto"   # 'produto' ou 'serviço' (servicos.buscar_servicos preenche durante a busca)
+COLUNAS_VERSAO = ["versao_app", "tipo_busca", "modo", "chamadas", "falhas", "tempo_s"]   # acrescentadas AO FIM do CSV da busca
 
 
 class PortalFora(Exception):
@@ -1102,19 +1110,22 @@ def juntar_buscas(resumos):
             leitor = csv.DictReader(fh, delimiter=";")
             campos += [c for c in leitor.fieldnames if c not in campos]
             todas += list(leitor)
+    somas = {}
+    for r in resumos:  # contadores numéricos (chamadas, falhas, tempo, registros...) somados
+        for k, v in r.items():
+            if isinstance(v, (int, float)) and not isinstance(v, bool):
+                somas[k] = somas.get(k, 0) + v
     for k, l in enumerate(todas, 1):
         l["linha"] = k
+        for col, chave in (("chamadas", "chamadas"), ("falhas", "falhas"), ("tempo_s", "tempo_s")):   # v4h: no CSV junto, os totais da tela (soma dos códigos)
+            if col in l:
+                l[col] = somas.get(chave, l[col])
     codigos = "_".join(m.group(1) for r in resumos for m in [re.search(r"=(\d+)", r.get("entrada", ""))] if m)
     nome_arq = SAIDA / f"busca_pdms_{codigos}_{dt.date.today():%Y-%m-%d}.csv"
     with nome_arq.open("w", encoding="utf-8-sig", newline="") as fh:
         w = csv.DictWriter(fh, fieldnames=campos, delimiter=";")
         w.writeheader()
         w.writerows(todas)
-    somas = {}
-    for r in resumos:  # contadores numéricos (chamadas, falhas, tempo, registros...) somados
-        for k, v in r.items():
-            if isinstance(v, (int, float)) and not isinstance(v, bool):
-                somas[k] = somas.get(k, 0) + v
     junto = {**somas, "arquivo": str(nome_arq), "produto": resumos[0].get("produto", ""), "pedidos": resumos[0].get("pedidos", {}),
              "entrada": " + ".join(r.get("entrada", "") for r in resumos), "fonte": resumos[0].get("fonte", ""),
              "linhas_salvas": len(todas), "buscas_juntadas": [r["arquivo"] for r in resumos]}
@@ -1129,8 +1140,16 @@ def preencher_vinculo(linha, v):
                       "link_publico": f"https://pncp.gov.br/app/editais/{v['cnpj']}/{v['ano']}/{v['seq']}"})
 
 
+def normalizar_id_compra(id_compra):
+    """idCompra tem 17 dígitos (UASG 6 + modalidade 2 + número 5 + ano 4). Algumas respostas do Compras.gov.br perdem o zero à esquerda
+    (16 dígitos) e a consulta volta vazia: completa com zeros até 17. Qualquer outra forma (vazio, letras, 17 ou mais dígitos) fica como veio."""
+    t = str(id_compra if id_compra is not None else "").strip()
+    return t.zfill(17) if t.isdigit() and len(t) < 17 else t
+
+
 def ligar_ao_pncp(id_compra):
     """idCompra do Compras.gov.br -> nº de controle, CNPJ, ano e sequencial no PNCP (mesmo caminho da rodada 3)."""
+    id_compra = normalizar_id_compra(id_compra)
     st, js, _ = get(f"{COMPRAS}/modulo-contratacoes/1.1_consultarContratacoes_PNCP_14133_Id", {"tipo": "idCompra", "codigo": id_compra})
     res = (js or {}).get("resultado", []) if st == 200 and isinstance(js, dict) else []
     if not res:
@@ -1147,9 +1166,13 @@ def salvar_busca(linhas, pedidos, nome_base, produto, cont, inicio, extras=()):
         l["linha"] = k
         del l["_n"]
     nome_arq = SAIDA / f"busca_{re.sub(r'[^a-z0-9]+', '_', norm(nome_base))}_{dt.date.today():%Y-%m-%d}.csv"
+    versao = {"versao_app": VERSAO_APP, "tipo_busca": TIPO_BUSCA, "modo": MODO_ATUAL or "não informado (menu)", "chamadas": STATS.get("chamadas", 0),
+              "falhas": STATS.get("falhas", 0), "tempo_s": round(time.time() - inicio)}      # v4h: colunas AO FIM do CSV (as existentes não mudam)
+    for l in linhas:
+        l.update(versao)
     cols = ["linha", "orgao", "uf", "data_publicacao", "data_resultado", "data_usada_no_filtro", "controle_pncp", "numero_item",
             "descricao_item", "preco_unitario_homologado", "atributos_atendidos"] + list(pedidos) + list(extras) + \
-           ["link_publico", "fonte_api_resultado", "cnpj", "ano", "sequencial"]
+           ["link_publico", "fonte_api_resultado", "cnpj", "ano", "sequencial"] + COLUNAS_VERSAO
     with nome_arq.open("w", encoding="utf-8-sig", newline="") as f:
         w = csv.DictWriter(f, fieldnames=cols, delimiter=";")
         w.writeheader()
@@ -1160,7 +1183,7 @@ def salvar_busca(linhas, pedidos, nome_base, produto, cont, inicio, extras=()):
               "falhas_por_tipo": {k[6:]: v for k, v in STATS.items() if k.startswith("falha:")},
               "chamadas_por_grupo": {k[6:]: v for k, v in STATS.items() if k.startswith("grupo:")},
               "falhas_por_grupo": {k[11:]: v for k, v in STATS.items() if k.startswith("falhagrupo:")},
-              "tempo_s": round(time.time() - inicio)}
+              "tempo_s": versao["tempo_s"], "versao_app": VERSAO_APP, "tipo_busca": TIPO_BUSCA, "modo": versao["modo"]}
     (SAIDA / "ultima_busca.json").write_text(json.dumps(resumo, ensure_ascii=False, indent=1), encoding="utf-8")
     print("\nResumo:", json.dumps(resumo, ensure_ascii=False, indent=1))
 
@@ -1382,6 +1405,63 @@ def opcao_3_baixar():
         print(f"*** PORTAL FORA OU BLOQUEADO: {e}")
 
 
+def resultado_download(texto):
+    """Lê o que a opção 3 imprimiu e diz se o download deu certo (Fase 3, conserto 1). Funções puras, sem rede.
+    estado: 'concluido' (pelo menos 1 arquivo baixado, nenhuma falha e a linha 'Documentos em:' impressa);
+    'parcial' (baixou alguns e outros falharam); 'falhou' (nada baixado, portal fora, lista não veio ou compra sem PNCP).
+    Devolve {'estado', 'baixados', 'falhas', 'pasta', 'motivo'}."""
+    texto = texto or ""
+    baixados = len(re.findall(r"^\s*baixado: ", texto, re.M))
+    falhas = len(re.findall(r"não baixado\s*$", texto, re.M))
+    m = re.search(r"Documentos em: (.+)", texto)
+    pasta = m.group(1).strip() if m else ""
+    motivo = ""
+    if "PORTAL FORA" in texto:
+        motivo = "portal fora ou bloqueado durante o download"
+    elif "Lista de arquivos não veio" in texto:
+        motivo = "a lista de arquivos não veio do PNCP"
+    elif "não foi encontrada no PNCP" in texto:
+        motivo = "a compra não foi encontrada no PNCP"
+    elif not pasta:
+        motivo = "a opção terminou sem a linha 'Documentos em:'"
+    elif baixados == 0:
+        motivo = "nenhum arquivo foi baixado"
+    if motivo and baixados == 0:
+        estado = "falhou"
+    elif motivo or falhas:
+        estado = "parcial"
+    else:
+        estado = "concluido"
+    return {"estado": estado, "baixados": baixados, "falhas": falhas, "pasta": pasta, "motivo": motivo}
+
+
+def texto_download(res):
+    """Frase para a tela, conforme resultado_download."""
+    if res["estado"] == "concluido":
+        return f"download concluído ({res['baixados']} arquivo(s))"
+    if res["estado"] == "parcial":
+        return f"download PARCIAL: {res['baixados']} arquivo(s) baixado(s), {res['falhas']} falhou/falharam" + (f"; {res['motivo']}" if res["motivo"] else "")
+    return f"download NÃO concluído: {res['motivo'] or 'nada foi baixado'}"
+
+
+def limpar_log_busca(texto):
+    """Tira do log da busca a linha de pergunta 'Preencha os atributos que quiser…': na tela os valores vêm do formulário e a frase é eco de pergunta
+    do terminal (Fase 3, conserto 2). As demais linhas ficam."""
+    return "\n".join(l for l in (texto or "").split("\n") if not l.lstrip().startswith("Preencha os atributos"))
+
+
+def aviso_corte_busca(resumo, limite_registros=None):
+    """Aviso visível quando a busca leu menos registros que a API informou (corte por páginas: 3 x 100 = 300 no modo rápido).
+    Devolve '' quando não houve corte ou quando faltam os números (não afirma corte sem número)."""
+    informados, lidos = (resumo or {}).get("registros_informados_pela_api"), (resumo or {}).get("registros_lidos")
+    if not isinstance(informados, int) or not isinstance(lidos, int) or isinstance(informados, bool) or lidos >= informados:
+        return ""
+    n = lambda v: f"{v:,}".replace(",", ".")
+    dentro = f" (limite desta busca: {n(limite_registros)} registros)" if limite_registros else ""
+    return (f"BUSCA CORTADA: a API informou {n(informados)} registros e só {n(lidos)} foram lidos{dentro}. Os {n(informados - lidos)} restantes NÃO foram analisados; "
+            "a tabela pode estar sem compras que atendem. Para ler mais, use o modo completo.")
+
+
 TIPOS_PRINCIPAIS = ("edital", "termo de referencia", "estudo tecnico", "etp", "documento de formalizacao", "dfd", "aviso")
 
 
@@ -1526,6 +1606,32 @@ def extrair_paginas(caminho):
 
 
 # ----------------------------------------------------------------- opção 4
+FRACAO_JANELA_CSV = CONFIG / "orcamento_v2.csv"   # v4h: fração da janela usada como limite do recorte (padrão 0,70)
+
+
+def limitar_recorte(trabalho, paginas, rx, rec, modelo="padrao"):
+    """v4h. Aplica a guarda de contexto ao recorte.txt que o seletor acabou de gravar em 'trabalho': mantém as páginas na ordem de inclusão do seletor
+    até a estimativa (instrução incluída, fator do config\\orcamento_tokens.csv) chegar a fracao_janela x janela; para na primeira que não couber;
+    regrava recorte.txt só com as mantidas (em ordem numérica). O recorte completo do seletor fica em recorte_seletor_completo.txt e os números em
+    recorte_info.json. Devolve o dict de ranking_recorte.aplicar_limite acrescido de fracao_janela, janela e fator."""
+    cfg = orcamento_tokens.ler_config(ORCAMENTO_CSV, modelo)
+    fr = orcamento_tokens.ler_fracao_janela(FRACAO_JANELA_CSV, modelo)
+    instrucao = INSTRUCAO.read_text(encoding="utf-8").rstrip()
+
+    def estimar(prompt):
+        return orcamento_tokens.calcular_orcamento_v2(max(0, len(prompt) - len(instrucao)), len(instrucao), cfg["contexto_tokens"],
+                                                      cfg["reserva_resposta_tokens"], cfg["caracteres_por_token"], fr["fracao_janela"])
+
+    recorte = (trabalho / "recorte.txt").read_text(encoding="utf-8")
+    info = ranking_recorte.aplicar_limite(paginas, recorte, rx, rec.APOIO, rec.MAX_PAG, instrucao, estimar)
+    if info["fidelidade"]:
+        (trabalho / "recorte_seletor_completo.txt").write_text(recorte, encoding="utf-8")
+        (trabalho / "recorte.txt").write_text(info["texto"], encoding="utf-8")
+    info.update(fracao_janela=fr["fracao_janela"], fracao_origem=fr["origem"], janela=cfg["contexto_tokens"], fator=cfg["caracteres_por_token"])
+    (trabalho / "recorte_info.json").write_text(json.dumps({k: v for k, v in info.items() if k != "texto"}, ensure_ascii=False, indent=1), encoding="utf-8")
+    return info
+
+
 def opcao_4_recortar():
     """Recorta as páginas do item num PDF, usando o recorte_teste_ia.py (marcas '=== PÁGINA N ===')."""
     pdfs = documentos_recortaveis()  # PDF e Word
@@ -1547,6 +1653,8 @@ def opcao_4_recortar():
         return
     chave = next((p for p in produtos if norm(p) == norm(item)), None)
     palavras = [item] + ([ap for a in produtos[chave] for ap in a["apelidos"]] if chave else [])
+    if "|" in item and not chave:   # v4h (serviço): 'palavra1|palavra2|...' = várias palavras que o seletor de páginas procura
+        palavras = [w.strip() for w in item.split("|") if w.strip()]
     rx = "|".join(re.escape(norm(w)) for w in palavras if len(norm(w)) >= 2)
 
     trabalho = SAIDA / "recortes" / re.sub(r"[^0-9A-Za-z]+", "_", pdf.stem)[:60]
@@ -1568,10 +1676,27 @@ def opcao_4_recortar():
     rec.main(trabalho, trabalho)
     saida_txt = trabalho / "recorte.txt"
     (trabalho / "REC_recorte.txt").replace(saida_txt)
+    info = limitar_recorte(trabalho, paginas, rx, rec)   # v4h: guarda de contexto (nunca corta em silêncio)
     print(f"Recorte salvo em: {saida_txt}")
+    print(ranking_recorte.linha_do_recorte(info))
+    aviso_rec = ranking_recorte.aviso_do_recorte(info)
+    if aviso_rec:
+        print(f"AVISO: {aviso_rec}")
 
 
 # ----------------------------------------------------------------- opção 5
+ORCAMENTO_CSV = CONFIG / "orcamento_tokens.csv"   # fator de caracteres por token, janela e reserva: editável (padrão conservador 3,0)
+
+
+def orcamento_do_prompt(prompt, modelo="padrao"):
+    """Orçamento de tokens do texto da IA (instrução + recorte) com o fator do config\\orcamento_tokens.csv. Devolve (dict, '≈ N tokens de M (fator ...)')."""
+    cfg = orcamento_tokens.ler_config(ORCAMENTO_CSV, modelo)
+    instrucao = INSTRUCAO.read_text(encoding="utf-8").rstrip()
+    orc = orcamento_tokens.calcular_orcamento(max(0, len(prompt) - len(instrucao)), len(instrucao), cfg["contexto_tokens"],
+                                              cfg["reserva_resposta_tokens"], cfg["caracteres_por_token"])
+    return orc, orcamento_tokens.texto_orcamento(orc, cfg["origem"])
+
+
 def opcao_5_texto_ia():
     """Junta INSTRUCAO_FICHA.txt + o recorte num .txt pronto para colar na IA."""
     recs = sorted((SAIDA / "recortes").glob("*/recorte.txt")) if (SAIDA / "recortes").exists() else []
@@ -1589,7 +1714,10 @@ def opcao_5_texto_ia():
     alvo = pasta / f"{r.parent.name}_PARA_IA.txt"
     texto = INSTRUCAO.read_text(encoding="utf-8").rstrip() + "\n\n" + r.read_text(encoding="utf-8")
     alvo.write_text(texto, encoding="utf-8")
-    print(f"Pronto para colar: {alvo}  ({len(texto):,} caracteres, ~{len(texto) // 4:,} tokens)")
+    orc, aviso_tokens = orcamento_do_prompt(texto)
+    print(f"Pronto para colar: {alvo}  ({len(texto):,} caracteres; {aviso_tokens})")
+    if not orc["cabe"]:
+        print(orcamento_tokens.aviso_nao_cabe(orc))
 
 
 # ----------------------------------------------------------------- opção 6

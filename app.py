@@ -1376,6 +1376,7 @@ with area_resultado.container():
             df["estimado"] = df.apply(coluna_estimado, axis=1)
             df["dif_estimado"] = df.apply(coluna_diferenca, axis=1)
             df["abrir"] = df["link_publico"].where(df["link_publico"].fillna("").str.startswith("http"), "")
+            df = sv.ligadas_primeiro(df)      # Pedido 33 (1.4): linhas ligadas ao PNCP primeiro; o número da "linha" não muda
             canal = st.session_state.get("canal_oficial", {}) if eh_serv else {}
             if eh_serv:  # preço do site oficial: só o que a pessoa digitou (o app nunca acessa o site); o rótulo só aparece com os 3 campos
                 for chave in ("preco", "link", "acesso"):
@@ -1427,7 +1428,8 @@ with area_resultado.container():
             st.subheader("Etapa 3 · Recorte: baixar o documento e gerar o texto para a IA")
             opcoes = df["linha"].tolist()
             escolha = st.selectbox("Linha", opcoes, format_func=lambda n: f"{n} – " + str(df.loc[df["linha"] == n, "orgao"].iloc[0])[:50]
-                                   + " – " + str(df.loc[df["linha"] == n, "descricao_item"].iloc[0])[:60])
+                                   + " – " + str(df.loc[df["linha"] == n, "descricao_item"].iloc[0])[:60],
+                                   index=sv.indice_primeira_ligada(df["link_publico"].tolist()))      # Pedido 33 (1.3): abre na 1ª linha ligada ao PNCP; nenhuma ligada = linha 1
             # Pedido 25 (Fase 2): o botão vale para Produto e Serviço (a lista de arquivos do PNCP é a mesma)
             lin_ok = df.loc[df["linha"] == escolha].iloc[0]
             if st.button("Listar os TR e documentos principais desta compra (1 consulta ao PNCP, nada é baixado)"):
@@ -1445,6 +1447,9 @@ with area_resultado.container():
                     st.warning("O PNCP não devolveu a lista de documentos desta compra (não quer dizer que não existam). Tente de novo mais tarde.")
                 else:
                     st.dataframe(pd.DataFrame(lt["docs"]).rename(columns={"termo_de_referencia": "é TR", "principal": "principal"}), hide_index=True, width="stretch", height=altura_tabela(len(lt["docs"])))
+                    _aviso_sem_tr = sv.aviso_sem_documento_principal(lt["docs"])      # Pedido 33 (5): antes do botão de baixar; nada é baixado
+                    if _aviso_sem_tr:
+                        st.warning(_aviso_sem_tr)
             outros = st.checkbox("Baixar também propostas, atas e despachos (podem ser dezenas de arquivos grandes)", value=False)
             clicou_dl = st.button("Baixar documentos da linha")
             slot_dl = mostrar_painel("e3_baixar", alvo=escolha)      # Pedido 13I: painel do download, sempre à vista
@@ -1506,7 +1511,7 @@ with area_resultado.container():
                     pdfs = [p for p in arquivos if p.suffix.lower() in f.EXTENSOES_RECORTE]  # PDF e Word
                     if pdfs:
                         pdf = st.selectbox("Documento para recortar: PDF ou Word (de preferência o TR)", pdfs, format_func=lambda p: p.name,
-                                           index=next((i for i, p in enumerate(pdfs) if re.search(r"termo|\btr\b", f.norm(p.name))), 0))
+                                           index=sv.indice_documento_recorte(pasta, pdfs)[0])      # Pedido 33 (1.2): TR da lista do PNCP; sem TR, 1º principal
                         # ---- Pedido 13I: "Item pedido" por item. Serviço: a descrição PRÓPRIA da linha escolhida sem as palavras do nome do serviço (itens diferentes com o mesmo código);
                         # produto: o que já era (o produto do resumo). Editável; vai para a 1ª linha do texto e para a pontuação das páginas do recorte.
                         aviso_item = ""
@@ -1630,9 +1635,14 @@ _recortes = sorted((p.parent for p in (_saida_sessao / "recortes").glob("*/recor
 if not _recortes:
     st.caption("Ainda não há recorte. Gere o texto para IA acima (o recorte fica guardado) e volte aqui para colar a resposta da IA.")
 else:
-    _atual = st.session_state.get("recorte_atual")
-    _idx = next((i for i, p in enumerate(_recortes) if p.name == _atual), 0)
-    pasta_rec = st.selectbox("Recorte conferido (o texto das páginas vem dele)", _recortes, index=_idx, format_func=lambda p: p.name, key="ficha_recorte")
+    # Pedido 33 (1.1): com key=, o seletor guarda a escolha antiga e ignora index; por isso, quando surge ou é regravado um recorte, a escolha é refeita antes de criar o seletor
+    _padrao = sv.recorte_padrao(_recortes, st.session_state.get("recorte_atual"))
+    _marca = (_padrao.name, (_padrao / "recorte.txt").stat().st_mtime)
+    if st.session_state.get("_ficha_recorte_marca") != _marca or st.session_state.get("ficha_recorte") not in _recortes:
+        st.session_state["ficha_recorte"] = _padrao
+        st.session_state["_ficha_recorte_marca"] = _marca
+    pasta_rec = st.selectbox("Recorte conferido (o texto das páginas vem dele)", _recortes, format_func=lambda p: p.name, key="ficha_recorte")
+    st.caption(sv.frase_recorte_conferido(_recortes, pasta_rec))
     paginas_rec, item_rec, info_rec2 = conferir_tela.ler_recorte(pasta_rec)
     if item_rec:
         st.caption(f"Item pedido: {item_rec}")    # Pedido 13I: o item do recorte conferido fica à vista

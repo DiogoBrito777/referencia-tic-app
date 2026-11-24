@@ -757,3 +757,88 @@ def resumo_falhas(falhas):
 def sem_enderecos(texto):
     """Troca qualquer endereço (http/https) do texto por '(endereço omitido)': a tela não mostra URL com identificadores da compra."""
     return re.sub(r"https?://\S+", "(endereço omitido)", texto or "")
+
+
+# ----------------------------------------------------------------- Pedido 33 (Fase 1): padrões da tela -- funções puras, sem rede
+def ligada_ao_pncp(link):
+    """Linha ligada ao PNCP = link_publico começando com http (mesma regra que a tela já usa)."""
+    return str(link or "").startswith("http")
+
+
+def ligadas_primeiro(df):
+    """Tabela de resultados (Etapa 2): linhas ligadas ao PNCP primeiro; dentro de cada grupo a ordem é a de antes (ordenação estável).
+    Devolve uma cópia: não altera o df recebido nem o CSV da busca. Sem a coluna link_publico, devolve o df como veio."""
+    if "link_publico" not in df.columns:
+        return df
+    nao_ligada = (~df["link_publico"].map(ligada_ao_pncp)).astype(int)
+    return df.assign(_nl=nao_ligada).sort_values("_nl", kind="stable").drop(columns="_nl").reset_index(drop=True)
+
+
+def indice_primeira_ligada(links):
+    """Posição (0, 1, ...) da primeira linha ligada ao PNCP numa lista de links; 0 se nenhuma estiver ligada (a tela abre na linha 1, como antes)."""
+    return next((i for i, x in enumerate(links) if ligada_ao_pncp(x)), 0)
+
+
+def _eh_tr(a):
+    """Mesma regra de listar_documentos_compra para o campo 'termo_de_referencia'."""
+    return bool(re.search(r"termo de referencia|(?<![a-z])tr(?![a-z])", f.norm((a.get("tipoDocumentoNome") or "") + " " + (a.get("titulo") or ""))))
+
+
+def indice_documento_recorte(pasta, arquivos):
+    """Posição do documento em que 'Documento para recortar' abre. 'arquivos' são os PDF/Word baixados em <pasta>, na ordem da lista da tela.
+    Os arquivos baixados começam com '<sequencialDocumento>_' (os extraídos de ZIP ficam numa subpasta com esse prefixo); a ligação com a lista do PNCP
+    (_lista_arquivos_pncp.json, gravada pelo download) é por esse número. Ordem: 1) arquivo marcado como TR; 2) primeiro principal (f.eh_principal);
+    3) sem a lista (download antigo): nome com 'termo'/'tr', como era; 4) o primeiro. Devolve (posição, motivo)."""
+    import json
+    try:
+        lista = json.loads((Path(pasta) / "_lista_arquivos_pncp.json").read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        lista = None
+    if isinstance(lista, list):
+        ativos = [a for a in lista if isinstance(a, dict) and a.get("statusAtivo") is not False]
+        grupos = (("TR", {str(a.get("sequencialDocumento")) for a in ativos if _eh_tr(a)}),
+                  ("principal", {str(a.get("sequencialDocumento")) for a in ativos if f.eh_principal(a)}))
+        topo = []
+        for p in arquivos:
+            try:
+                primeiro = Path(p).relative_to(pasta).parts[0]
+            except ValueError:
+                primeiro = Path(p).name
+            m = re.match(r"(\d+)_", primeiro)
+            topo.append(m.group(1) if m else None)
+        for motivo, seqs in grupos:
+            for i, s in enumerate(topo):
+                if s is not None and s in seqs:
+                    return i, motivo
+    for i, p in enumerate(arquivos):
+        if re.search(r"termo|\btr\b", f.norm(Path(p).name)):
+            return i, "nome"
+    return 0, "primeiro"
+
+
+def recorte_padrao(recortes, atual=None):
+    """Recorte em que a Etapa 5 abre. 'recortes' vem do mais recente para o mais antigo. Abre no gerado por último nesta sessão (nome em 'atual', se achado na
+    lista); senão no mais recente. Devolve None se não houver recorte."""
+    if not recortes:
+        return None
+    return next((p for p in recortes if p.name == atual), recortes[0])
+
+
+def frase_recorte_conferido(recortes, escolhido):
+    """Uma linha dizendo qual recorte a Etapa 5 está conferindo e se é o mais recente da sessão."""
+    n = len(recortes)
+    base = f"Recorte conferido: {escolhido.name} ({n} recorte(s) nesta sessão)"
+    if escolhido == recortes[0]:
+        return base + "; é o mais recente."
+    return base + f"; NÃO é o mais recente (o mais recente é {recortes[0].name})."
+
+
+# ----------------------------------------------------------------- Pedido 33 (Fase 2): aviso na lista de documentos -- função pura, sem rede
+def aviso_sem_documento_principal(docs):
+    """'docs' = lista devolvida por listar_documentos_compra. Se a lista veio (1+ arquivo) e nenhum é edital, TR, ETP, DFD ou aviso (campo 'principal'), devolve a frase
+    de aviso para mostrar ANTES do botão de baixar; senão None (lista vazia = o PNCP não respondeu: não é conclusão, a tela já tem outro aviso). Não baixa nada."""
+    docs = [d for d in (docs or []) if isinstance(d, dict)]
+    if not docs or any(d.get("principal") for d in docs):
+        return None
+    return ("Esta compra não tem TR, edital, ETP, DFD nem aviso na lista do PNCP; provavelmente contratação direta. "
+            "Por regra, o download não traz nada se você não marcar \"Baixar também propostas, atas e despachos\".")

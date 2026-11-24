@@ -221,7 +221,7 @@ def _termos_sem_separador(s):
 
 def alertas_revisar(texto, item=""):
     """Lê a resposta FINAL (use separar antes) e devolve [{'campo','alerta','detalhe'}] com o que pede REVISÃO humana (não é erro):
-    'valor não encontrado com trecho' | 'ano com mais de um número' | 'garantia: trecho em dias' | 'linha com mais de 4 colunas' | 'atributo igual ao item pedido' (só se 'item' vier; o item usa '|' para separar termos).
+    'valor não encontrado com trecho' | 'ano com mais de um número' | 'garantia: trecho em dias' | 'linha com mais de 4 colunas' | 'atributo igual ao item pedido' (só se 'item' vier; o item usa '|' para separar termos) | 'compatível: outro objeto' (compatível = 'diferente' ou 'o documento não trata do item').
     Procura só a primeira linha de cada campo (como linhas_da_ficha) e devolve [] se não for a ficha (menos de MIN_CAMPOS_FICHA campos)."""
     if not linhas_da_ficha(texto):
         return []
@@ -252,4 +252,6 @@ def alertas_revisar(texto, item=""):
             out.append({"campo": campo, "alerta": "ano com mais de um número", "detalhe": f"o valor tem mais de um número de 4 dígitos ({valor[:40]}); a ficha deve ter um único ano"})
         if campo == "garantia" and re.search(r"\d", valor) and not re.fullmatch(r"\d+ ?\( ?\d+ dias?\)", sv_) and re.search(r"\bdias?\b", st_) and not re.search(r"\bmes(es)?\b", st_):   # só o formato convertido 'N (M dias)' não alerta; '180 dias' alerta
             out.append({"campo": campo, "alerta": "garantia: trecho em dias", "detalhe": f"o valor tem número ({valor[:30]}) e o trecho fala em dias, não em meses; confira a unidade"})
+        if campo == "compativel" and (sv_.startswith("diferente") or "nao trata" in sv_):      # Pedido 33 (6): documento de outro objeto
+            out.append({"campo": "compatível", "alerta": "compatível: outro objeto", "detalhe": f"o campo compatível é \"{valor[:40]}\": os outros campos (atributo, garantia, prazo) podem ser de outro objeto; confira antes de usar"})
     return out

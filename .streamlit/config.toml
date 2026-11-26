@@ -1,2 +1,36 @@
 [browser]
 gatherUsageStats = false
+
+# Pedido 36, Fase 1 (paleta v2): tema claro e escuro, so aparencia (nenhuma mudanca de logica, de texto ou de resultado).
+# Fonte: formato documentado "<nome>:<url do CSS>" seguido de fallback ("sans-serif"); o navegador de quem abre o app baixa a Inter do Google Fonts.
+[theme.light]
+backgroundColor = "#F5F7FA"
+secondaryBackgroundColor = "#FFFFFF"
+textColor = "#1B2A41"
+primaryColor = "#1E3A5F"
+borderColor = "#E3E8EF"
+showWidgetBorder = true
+baseRadius = "12px"
+font = "Inter:https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap, sans-serif"
+
+# Barra lateral coerente com o claro (o app hoje nao usa st.sidebar: 0 ocorrencias em app.py).
+[theme.light.sidebar]
+backgroundColor = "#FFFFFF"
+secondaryBackgroundColor = "#F5F7FA"
+borderColor = "#E3E8EF"
+
+[theme.dark]
+backgroundColor = "#0F1B2D"
+secondaryBackgroundColor = "#162A44"
+textColor = "#E6ECF5"
+primaryColor = "#7FB0FF"
+borderColor = "#243B58"
+showWidgetBorder = true
+baseRadius = "12px"
+font = "Inter:https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap, sans-serif"
+
+# Barra lateral coerente com o escuro.
+[theme.dark.sidebar]
+backgroundColor = "#162A44"
+secondaryBackgroundColor = "#0F1B2D"
+borderColor = "#243B58"

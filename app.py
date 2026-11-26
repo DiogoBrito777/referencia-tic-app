@@ -723,7 +723,7 @@ def etapa1(tipo):
     e = {"termo": "", "produto": None, "buscar": False, "escolhidos": [], "por_codigo": {}, "erro_codigo": "", "modo": "rápido", "uf": ""}
     _e1, esq, _d1 = st.columns([1, 3, 1])                  # coluna CENTRAL da Etapa 1 (regra de largura: ver o comentário acima)
     e["coluna"] = esq
-    with esq:
+    with esq, cartao("etapa1_procurar"):
         st.subheader("Etapa 1 · Buscar")
         st.markdown("##### Procurar no catálogo")
         cb1, cb2 = st.columns([2, 1], vertical_alignment="bottom")
@@ -733,7 +733,7 @@ def etapa1(tipo):
         else:
             termo = cb1.text_input("Palavra do serviço (ex.: manutenção elétrica, limpeza, vigilância)", key="serv_termo",
                                    on_change=lambda: st.session_state.__setitem__("serv_procurar_agora", True))
-        procurar = cb2.button("Procurar no catálogo", width="stretch") or st.session_state.pop("procurar_agora" if eh_prod else "serv_procurar_agora", False)
+        procurar = cb2.button("Procurar no catálogo", width="stretch", type="primary" if VISUAL_NOVO else "secondary") or st.session_state.pop("procurar_agora" if eh_prod else "serv_procurar_agora", False)
         e["termo"] = termo
         # ---- c) legenda do catálogo + botão Atualizar catálogo: o MESMO bloco nos dois modos (Pedido 13F: nenhuma diferença de botões entre Produto e Serviço)
         if eh_prod:
@@ -829,7 +829,7 @@ def etapa1(tipo):
         escolhidos = lista_resultados(False, busca_s)
     _e2, esq2, _d2 = st.columns([1, 3, 1])                 # 2ª coluna central: opção avançada, Modo e UF e o botão Buscar
     e["coluna"] = esq2                                     # as mensagens do clique em Buscar aparecem aqui, junto do botão
-    with esq2:
+    with esq2, cartao("etapa1_buscar"):
         # ---- d) opção avançada: digitar o código
         if eh_prod:
             with st.expander("Opção avançada: digitar o código do catálogo", expanded=bool(st.session_state.get("codigo_av"))):
@@ -1033,6 +1033,92 @@ def buscar_servico(area, e):
 
 # ----------------------------------------------------------------- tela
 st.set_page_config(page_title="Referência TIC", layout="wide")
+
+# ----------------------------------------------------------------- Pedido 36: visual novo, SÓ aparência
+VISUAL_NOVO = True   # True liga o visual novo; False = app exatamente como antes (nenhum widget, rótulo, aviso ou chave muda de um modo para o outro)
+
+_PILHA_CARTOES = []   # cartões abertos por cartao_ini (zerada a cada execução do script)
+
+
+def cartao(nome):
+    """Agrupa um bloco num cartão (st.container com borda) quando VISUAL_NOVO; com False devolve um contexto vazio. A chave só dá ao CSS um seletor estável (classe st-key-cartao_<nome>)."""
+    return st.container(border=True, key=f"cartao_{nome}") if VISUAL_NOVO else contextlib.nullcontext()
+
+
+def cartao_ini(nome):
+    """Abre um cartão SEM reindentar o código que vem depois; cartao_fim() fecha o último aberto, no mesmo nível de indentação do mesmo bloco."""
+    if VISUAL_NOVO:
+        c = st.container(border=True, key=f"cartao_{nome}")
+        c.__enter__()
+        _PILHA_CARTOES.append(c)
+
+
+def cartao_fim():
+    if VISUAL_NOVO and _PILHA_CARTOES:
+        _PILHA_CARTOES.pop().__exit__(None, None, None)
+
+
+# CSS que serve nos DOIS temas sem calcular cor em Python: o Streamlit põe color-scheme claro/escuro no .stApp conforme o tema escolhido (Claro, Escuro ou Sistema), então
+# light-dark(claro, escuro) troca sozinho na hora, sem recarregar. Os valores repetem as cores de .streamlit/config.toml; o resto usa currentColor, inherit e color-mix.
+CSS_VISUAL = """
+.stApp { --ref-prim: light-dark(#1E3A5F, #7FB0FF); --ref-prim-texto: light-dark(#FFFFFF, #0F1B2D); --ref-cartao: light-dark(#FFFFFF, #162A44);
+         --ref-borda: light-dark(#E3E8EF, #243B58); --ref-sombra-cor: light-dark(rgba(16,24,40,.10), rgba(0,0,0,.40)); }
+[data-testid="stMainBlockContainer"], [data-testid="stAppViewBlockContainer"], .stMain .block-container { max-width:1200px !important; margin-left:auto; margin-right:auto; }
+.ref-cabecalho { display:flex; align-items:center; gap:.6rem; padding:.1rem 0 .7rem 0; margin-bottom:.5rem; border-bottom:1px solid var(--ref-borda);
+                 font-weight:700; font-size:1.1rem; letter-spacing:.2px; color:inherit; }
+.ref-cabecalho .ref-marca { width:.8rem; height:.8rem; border-radius:4px; background:var(--ref-prim); display:inline-block; }
+.ref-faixa { display:flex; flex-wrap:wrap; gap:.5rem; margin:0 0 1.2rem 0; }
+.ref-passo { display:inline-flex; align-items:center; gap:.45rem; padding:.3rem .8rem .3rem .35rem; border:1px solid var(--ref-borda); border-radius:999px;
+             background:var(--ref-cartao); font-size:.86rem; color:inherit; }
+.ref-passo b { display:inline-flex; align-items:center; justify-content:center; width:1.35rem; height:1.35rem; border-radius:50%; background:var(--ref-prim); color:var(--ref-prim-texto); font-size:.78rem; }
+[class*="st-key-cartao_"] { background:var(--ref-cartao); border:1px solid var(--ref-borda) !important; border-radius:14px !important; box-shadow:0 1px 3px var(--ref-sombra-cor); padding:.9rem 1.1rem 1rem 1.1rem; margin-bottom:1.4rem; }
+[class*="st-key-cartao_"] h3 { border-left:4px solid var(--ref-prim); padding-left:.7rem; font-weight:700; font-size:1.4rem; }
+[data-testid="stHeading"] h1 { font-size:2rem; font-weight:700; }
+/* mesma largura para tudo: o topo e a Etapa 1 ficam em colunas [1, 3, 1] (estrutura fixada por testes); só no visual novo as colunas laterais vazias somem e a central ocupa a largura toda */
+[data-testid="stHorizontalBlock"]:has([class*="st-key-cartao_etapa1"]) > [data-testid="stColumn"]:not(:nth-child(2)),
+[data-testid="stHorizontalBlock"]:has(> [data-testid="stColumn"] h1) > [data-testid="stColumn"]:not(:nth-child(2)) { display:none; }
+[data-testid="stHorizontalBlock"]:has([class*="st-key-cartao_etapa1"]) > [data-testid="stColumn"]:nth-child(2),
+[data-testid="stHorizontalBlock"]:has(> [data-testid="stColumn"] h1) > [data-testid="stColumn"]:nth-child(2) { flex:1 1 100% !important; width:100% !important; min-width:0; }
+[data-testid="stMetric"] { background:var(--ref-cartao); border:1px solid var(--ref-borda); border-radius:14px; box-shadow:0 1px 3px var(--ref-sombra-cor); padding:.7rem .9rem; }
+[data-testid="stMetricValue"] { font-weight:700; }
+[data-testid="stAlert"] { border-radius:12px; border:1px solid color-mix(in srgb, currentColor 14%, transparent); }
+[data-testid="stCaptionContainer"] { font-size:.82rem; opacity:.82; }
+[data-testid="stDataFrame"] { border:1px solid var(--ref-borda); border-radius:12px; overflow:hidden; }
+[data-testid="stTextInputRootElement"] { border:1.5px solid color-mix(in srgb, currentColor 55%, transparent) !important; min-height:2.9rem; }
+[data-testid="stTextInputRootElement"]:focus-within { border-color:var(--ref-prim) !important; box-shadow:0 0 0 2px color-mix(in srgb, var(--ref-prim) 35%, transparent); }
+button[data-testid^="stBaseButton-secondary"] { font-weight:500; box-shadow:none; }
+button[data-testid="stBaseButton-primary"], button[data-testid="stBaseButton-primaryFormSubmit"] { font-weight:600; color:var(--ref-prim-texto) !important; }
+button[data-testid="stBaseButton-primary"] p, button[data-testid="stBaseButton-primaryFormSubmit"] p { color:var(--ref-prim-texto) !important; }
+[data-testid="stProgress"] [role="progressbar"] > div { background-color:var(--ref-prim) !important; }
+"""
+
+
+HTML_CABECALHO = '<div class="ref-cabecalho"><span class="ref-marca"></span>Referência TIC</div><div class="ref-faixa"><span class="ref-passo"><b>1</b>Buscar</span><span class="ref-passo"><b>2</b>Escolher a compra</span><span class="ref-passo"><b>3</b>Recorte</span><span class="ref-passo"><b>4</b>IA</span><span class="ref-passo"><b>5</b>Conferir</span></div>'   # ref-cabecalho
+
+
+def tabela_destaque(tab):
+    """Só visual: com VISUAL_NOVO, realça (fundo verde translúcido, preço em negrito) a(s) linha(s) de MENOR preço homologado da própria tabela, se houver 2 ou mais preços. Não muda ordem, valores nem colunas;
+    com False (ou sem 2 preços) devolve a tabela como veio."""
+    if not VISUAL_NOVO or "preco_unitario_homologado" not in tab.columns:
+        return tab
+    p = pd.to_numeric(tab["preco_unitario_homologado"], errors="coerce")
+    if int(p.notna().sum()) < 2:
+        return tab
+    estilos = pd.DataFrame("", index=tab.index, columns=tab.columns)
+    estilos.iloc[(p == p.min()).to_numpy(), :] = "background-color: rgba(46, 160, 67, 0.22)"
+    estilos.loc[:, "preco_unitario_homologado"] = estilos["preco_unitario_homologado"].where(~(p == p.min()).to_numpy(), "background-color: rgba(46, 160, 67, 0.22); font-weight: 700")
+    return tab.style.apply(lambda _: estilos, axis=None)
+
+
+def aplicar_visual():
+    """Injeta o CSS do visual novo (st.html) e o cabeçalho com a faixa estática das 5 etapas (só visual; nenhum widget, texto, rótulo ou aviso muda)."""
+    if VISUAL_NOVO:
+        st.html(f"<style>{CSS_VISUAL}</style>")
+        st.markdown(HTML_CABECALHO, unsafe_allow_html=True)   # ref-cabecalho
+
+
+if VISUAL_NOVO:
+    aplicar_visual()
 
 produtos = f.ler_produtos()
 UNIDADE_TXT = {"GB": "GB", "polegadas": "polegadas", "meses": "meses", "portas": "portas", "MP": "megapixels",
@@ -1238,13 +1324,19 @@ with area_resultado.container():
     if _estado_e2:
         _desenha_painel(st, _estado_e2)    # Pedido 13I: o painel da busca fica na tela com o estado final depois do rerun
     if not rec:
+        cartao_ini("vazio_e2")
         st.subheader("Etapa 2 · Escolher a compra")   # Pedido 13C: a página não pula da Etapa 1 para a 5 sem explicação
         st.info("Nenhuma busca nesta sessão. Procure o serviço, marque o(s) código(s) e clique em Buscar compras do serviço." if tipo_busca == "Serviço"
                 else "Nenhuma busca nesta sessão. Procure, marque um código, preencha os atributos e clique em Buscar.")
+        cartao_fim()
+        cartao_ini("vazio_e3")
         st.subheader("Etapa 3 · Recorte")
         st.caption("Depois da busca: escolha a compra, baixe o documento e gere o recorte (o texto fica dentro de 70% da janela).")
+        cartao_fim()
+        cartao_ini("vazio_e4")
         st.subheader("Etapa 4 · IA")
         st.caption("Depois do recorte: copie o texto para a IA e, na Etapa 5, cole a resposta para conferir.")
+        cartao_fim()
     else:
         resumo = rec["resumo"]
         eh_serv = rec.get("tipo") == "serviço"
@@ -1253,6 +1345,7 @@ with area_resultado.container():
         pedidos = list(pedidos_val)
 
         # ---------- resumo
+        cartao_ini("etapa2_resumo")
         st.subheader("Etapa 2 · Escolher a compra: resumo da busca")
         if "PORTAL FORA" in rec["log"]:
             st.warning("O portal caiu ou bloqueou durante a busca. O que já tinha sido lido foi salvo.")
@@ -1300,8 +1393,10 @@ with area_resultado.container():
         if not total and rec.get("eh_item"):
             st.info("Nenhuma compra homologada encontrada nos últimos 12 meses neste código.")
 
+        cartao_fim()
         if total:
             # ---------- tabela
+            cartao_ini("etapa2_resultados")
             st.subheader("Etapa 2 · Escolher a compra: resultados" + ("" if eh_serv else " (primeiro quem não tem 'não atende')"))
             if not eh_serv:     # Pedido 18: Produto com um único item de catálogo nas linhas lidas (nada muda no Serviço)
                 _d0 = df.to_dict("records"); _n0 = {}
@@ -1390,7 +1485,7 @@ with area_resultado.container():
                 mostrar = ["linha", "situacao", "avaliacao", "compra_item", "abrir", "estimado", "preco_unitario_homologado", "dif_estimado",
                            "observacao_preco", *pedidos, "data_resultado", "orgao", "uf", "indicador_descricao", "descricao_item"]
             mostrar = [c for c in mostrar if c in df.columns]
-            st.dataframe(df[mostrar], hide_index=True, width="stretch", height=altura_tabela(len(df)),
+            st.dataframe(tabela_destaque(df[mostrar]), hide_index=True, width="stretch", height=altura_tabela(len(df)),
                          column_config={"avaliacao": st.column_config.TextColumn("avaliação", help="cada atributo pedido e o resultado"),
                                         "compra_item": st.column_config.TextColumn("compra e item no PNCP"),
                                         "abrir": st.column_config.LinkColumn("PNCP", display_text="abrir"),
@@ -1425,6 +1520,8 @@ with area_resultado.container():
                                file_name=Path(resumo["arquivo"]).name.replace(".csv", "_tela.csv"), mime="text/csv")
 
             # ---------- linha escolhida
+            cartao_fim()
+            cartao_ini("etapa3")
             st.subheader("Etapa 3 · Recorte: baixar o documento e gerar o texto para a IA")
             opcoes = df["linha"].tolist()
             escolha = st.selectbox("Linha", opcoes, format_func=lambda n: f"{n} – " + str(df.loc[df["linha"] == n, "orgao"].iloc[0])[:50]
@@ -1541,7 +1638,7 @@ with area_resultado.container():
                             st.warning(aviso_item)
                         if item:
                             st.caption("O app procura no documento: " + "; ".join(x for x in (item.split("|") if "|" in item else [item]) if x))
-                        clicou_ia = st.button("Gerar texto para IA")
+                        clicou_ia = st.button("Gerar texto para IA", type="primary" if VISUAL_NOVO else "secondary")
                         slot_rec = mostrar_painel("e3_recorte", alvo=escolha)      # Pedido 13I: painel do recorte, sempre à vista
                         slot_out = mostrar_painel("e3_outros", alvo=escolha)       # Pedido 13K: painel que lê os outros documentos quando o escolhido não tem texto
                         _sem = st.session_state.get("sem_texto")
@@ -1627,7 +1724,10 @@ with area_resultado.container():
                     else:
                         st.info("Nenhum PDF ou documento Word entre os arquivos baixados.")
 
+            cartao_fim()
+
 # ---------- v4h: Conferir ficha (sem IA): cola a resposta da IA e confere por código contra o texto do recorte
+cartao_ini("etapa5")
 st.subheader("Etapa 5 · Conferir ficha (sem IA)")
 _saida_sessao = pasta_da_sessao()  # f.SAIDA só aponta para a pasta da sessão DENTRO de respondendo; aqui usamos a pasta da sessão diretamente
 _recortes = sorted((p.parent for p in (_saida_sessao / "recortes").glob("*/recorte.txt") if (p.parent / "paginas.json").exists()),
@@ -1670,7 +1770,7 @@ else:
     if recorte_sem_texto:
         st.error("Recorte sem texto: as páginas deste recorte não têm texto (PDF digitalizado, e o app não faz OCR). A ficha não pode ser conferida contra ele. "
                  "Volte à Etapa 3 e escolha um documento que tenha texto.")
-    clicou_conf = st.button("Conferir ficha")
+    clicou_conf = st.button("Conferir ficha", type="primary" if VISUAL_NOVO else "secondary")
     slot_c5 = mostrar_painel("e5_conferir", alvo=pasta_rec.name)      # Pedido 13I: painel da conferência, sempre à vista
     if clicou_conf and recorte_sem_texto:
         p5 = Painel("e5_conferir", "Etapa 5 · Conferir a ficha", slot_c5, alvo=pasta_rec.name)
@@ -1710,6 +1810,8 @@ else:
                                                                       "valor_igual_ao_modelo_da_instrucao": "valor = modelo da instrução"}), hide_index=True, width="stretch", height=altura_tabela(len(res_c["linhas"])))
             st.download_button("Baixar a conferência (CSV)", res_c["csv"], file_name=f"conferencia_{conf['recorte']}.csv", mime="text/csv")
     st.caption(conferir_tela.AVISO_LITERAL)
+
+cartao_fim()
 
 # ---------- buscas anteriores desta sessão (recolhidas); outras pessoas não veem
 historico = st.session_state.get("historico", [])
